@@ -1,0 +1,23 @@
+# colcon output: rebuild separately for each ROS distribution
+/build/
+/install/
+/log/
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local editor settings and secrets
+.vscode/
+.idea/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
