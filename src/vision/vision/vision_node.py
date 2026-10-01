@@ -63,6 +63,22 @@ T_base_cam = np.eye(4, dtype=np.float32)
 T_base_cam[:3, :3] = R_base_cam
 T_base_cam[:3, 3]  = t_base_cam
 
+# Five-point workspace calibration. Input is the legacy camera-to-base XY
+# estimate in millimetres; output is the corrected robot-base XY in mm.
+XY_AFFINE = np.array([
+    [0.96326342, -0.14303611],
+    [0.17048500,  0.86192343],
+    [21.92087408, -21.63722894],
+], dtype=np.float64)
+
+# Residual correction for the RED CUBE keypoint model, fitted from five
+# manually taught positions after the global workspace calibration.
+RED_XY_AFFINE = np.array([
+    [0.966202673,  0.009256139],
+    [-0.008833240, 1.058590200],
+    [14.834610200, -11.592932600],
+], dtype=np.float64)
+
 # =============================
 # OBJECT KEYPOINTS
 # =============================
@@ -444,6 +460,20 @@ class VisionWorkspaceNode(Node):
 
             T_base_obj = T_base_cam @ T_cam_obj
             object_pos_base = T_base_obj[:3, 3]
+
+            raw_xy_mm = object_pos_base[:2].astype(np.float64) * 1000.0
+            corrected_xy_mm = np.array(
+                [raw_xy_mm[0], raw_xy_mm[1], 1.0],
+                dtype=np.float64
+            ) @ XY_AFFINE
+
+            if color == "red":
+                corrected_xy_mm = np.array(
+                    [corrected_xy_mm[0], corrected_xy_mm[1], 1.0],
+                    dtype=np.float64
+                ) @ RED_XY_AFFINE
+
+            object_pos_base[:2] = corrected_xy_mm / 1000.0
 
             # =============================
             # VISUALIZATION

@@ -21,3 +21,7 @@ __pycache__/
 *.pem
 *.key
 .DS_Store
+
+# Interactive history and source backup files
+.ipython/profile_default/history.sqlite*
+*.orig
