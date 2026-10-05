@@ -3,6 +3,10 @@
 Source workspace containing robot descriptions, MoveIt configuration, control,
 custom messages, motion nodes, vision, notebooks, and YOLO weights.
 
+For the corrected ArUco/Brain pick-and-place application, follow
+[the ordered robot-PC setup and calibration guide](README_ROBOT_PC.md).
+It covers updating, building, calibration, validation, and supervised execution.
+
 ## Humble and Jazzy
 
 The existing workspace was set up with **ROS 2 Humble**. Native Debian packages
