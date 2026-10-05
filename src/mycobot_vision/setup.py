@@ -13,7 +13,7 @@ setup(
     ],
     install_requires=['setuptools',
                       "numpy",
-                      "opencv-python",
+                      "opencv-contrib-python",
     ],
     zip_safe=True,
     maintainer='yannick',

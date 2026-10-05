@@ -3,6 +3,7 @@ import numpy as np
 from ultralytics import YOLO
 import json
 import os
+import glob
 
 # ===== ROS 2 ADDITIONS =====
 import rclpy
@@ -123,11 +124,18 @@ class VisionWorkspaceNode(Node):
         )
 
         # Camera (USB camera)
-        self.cap = cv2.VideoCapture(
-            os.environ.get("MYCOBOT_CAMERA", "/dev/video2"), cv2.CAP_V4L2
-        )
+        camera_setting = os.environ.get("MYCOBOT_CAMERA", "/dev/video2").strip()
+        camera_source = int(camera_setting) if camera_setting.isdecimal() else camera_setting
+        self.get_logger().info(f"Opening camera {camera_source!r} with V4L2")
+        self.cap = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
         if not self.cap.isOpened():
-            self.get_logger().error("Camera could not be opened")
+            available = sorted(glob.glob("/dev/video*"))
+            self.get_logger().error(
+                f"Camera {camera_source!r} could not be opened. "
+                f"Available video devices: {available}. "
+                "Set MYCOBOT_CAMERA to a capture device path or numeric index; "
+                "check device permissions and whether another process is using it."
+            )
             return
 
         # Z calibration variables
@@ -490,9 +498,9 @@ class VisionWorkspaceNode(Node):
 
             cv2.putText(
                 frame,
-                f"Base X:{object_pos_base[0]:.3f} "
-                f"Y:{object_pos_base[1]:.3f} "
-                f"Z:{object_pos_base[2]:.3f}",
+                f"Base mm X:{object_pos_base[0] * 1000.0:.1f} "
+                f"Y:{object_pos_base[1] * 1000.0:.1f} "
+                f"Z:{object_pos_base[2] * 1000.0:.1f}",
                 (x1, y2 + 40),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.45,
