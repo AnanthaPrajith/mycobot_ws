@@ -1,0 +1,9 @@
+# Fill both release poses after converting measurements to pump_head in g_base.
+# Positions: metres. Roll/pitch/yaw: radians. These zeros are NOT taught poses.
+mycobot_brain:
+  ros__parameters:
+    cube_size_m: 0.04  # Must match the measured cube size and vision cube_height_mm.
+    sort_colors: [red, green, blue]
+    red_bin_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    other_bin_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    bin_poses_verified: false

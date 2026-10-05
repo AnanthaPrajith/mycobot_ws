@@ -72,7 +72,30 @@ class Vision(Node):
             rotation, translation, errors = estimate_pose(
                 self.objects, pixels, self.matrix, self.distortion,
                 self.config['max_reprojection_error_px'])
+            # Holders may raise markers above the board. Cube height starts
+            # at the board surface, not at the printed marker surface.
+            board_z = self.config.get('board_surface_z_mm', self.config['marker_plane_z_mm'])
+            if not np.isfinite(board_z):
+                raise ValueError('board_surface_z_mm must be finite.')
+            camera_base = -rotation.T @ translation
+            expected_height = self.config.get('camera_height_above_marker_mm')
+            if expected_height is not None:
+                tolerance = self.config.get('camera_height_tolerance_mm', 10.0)
+                if (not np.isfinite(expected_height) or expected_height <= 0
+                        or not np.isfinite(tolerance) or tolerance <= 0):
+                    raise ValueError('Camera height and tolerance must be finite and positive.')
+                measured_height = camera_base[2] - self.config['marker_plane_z_mm']
+                if abs(measured_height - expected_height) > tolerance:
+                    raise ValueError('Estimated camera height disagrees with the measured height.')
+            # Segment the unannotated image; debug colors must not be detections.
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            # Show detected corners (green) and reprojected corners (magenta).
+            rvec = cv2.Rodrigues(rotation)[0]
+            projected = cv2.projectPoints(
+                self.objects, rvec, translation, self.matrix, self.distortion)[0].reshape(-1, 2)
+            for observed, predicted in zip(pixels, projected):
+                cv2.circle(frame, tuple(np.round(observed).astype(int)), 3, (0, 255, 0), 1)
+                cv2.circle(frame, tuple(np.round(predicted).astype(int)), 3, (255, 0, 255), 1)
             ranges = {
                 'red': [((0, 100, 100), (15, 255, 255)), ((170, 100, 100), (179, 255, 255))],
                 'yellow': [((16, 100, 100), (55, 255, 255))],
@@ -99,7 +122,7 @@ class Vision(Node):
                     if area / (w * h) < .7:
                         continue
                     xyz = intersect((cx, cy), self.matrix, self.distortion, rotation, translation,
-                                    self.config['marker_plane_z_mm'] + self.config['cube_height_mm'])
+                                    board_z + self.config['cube_height_mm'])
                     if not (bounds['x'][0] <= xyz[0] <= bounds['x'][1] and
                             bounds['y'][0] <= xyz[1] <= bounds['y'][1]):
                         continue
@@ -115,7 +138,7 @@ class Vision(Node):
                                 (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, .4, (0, 255, 0), 1)
             self.detected_cubes = detected
             self.last_frame = time.monotonic()
-            cv2.putText(frame, f'ArUco max error {errors.max():.2f} px', (8, 25),
+            cv2.putText(frame, f'ArUco mean/max {errors.mean():.2f}/{errors.max():.2f} px', (8, 25),
                         cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 255, 0), 1)
         except Exception as exc:
             now = time.monotonic()
