@@ -496,3 +496,9 @@ Local changes include persistent camera capture/preview, explicit HIGH GPIO
 initialization, collision/home checks, commissioning configuration and bin updates.
 Do not run commands from historical reports without adapting paths and checking
 their measurements. Package-specific READMEs and original notebooks remain intact.
+
+Remote course-pipeline fixes are retained in `mycobot_brain` and the legacy
+`mycobot_vision vision` entry point, using `aruco_geometry_legacy.py` for its
+original calibration interface. The strict `vision_calibrated` extension retains
+its own geometry checks. Neither replaces the active `lab9_pick_place` run above.
+The additional `README_ROBOT_PC.md` documents that separate course pipeline.
