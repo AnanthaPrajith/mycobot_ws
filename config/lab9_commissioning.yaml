@@ -1,0 +1,93 @@
+# Initial motion checks: MoveIt velocity/acceleration scaling 0.2.
+camera:
+  height_m: 0.47
+markers:
+  dictionary: DICT_6X6_50
+  centers:
+    1:
+    - 0.135
+    - -0.06
+    2:
+    - 0.255
+    - 0.06
+objects:
+  surface_z_m: 0.012
+  cube_m: 0.035
+  cylinder_d_m: 0.035
+  cylinder_h_m: 0.035
+workspace:
+  x:
+  - 0.12
+  - 0.265
+  y:
+  - -0.075
+  - 0.075
+  search_margin_m: 0.02
+hsv:
+  sat_min: 90
+  val_min: 60
+  hue:
+    red:
+    - - 0
+      - 10
+    - - 170
+      - 179
+    yellow:
+    - - 18
+      - 35
+    green:
+    - - 40
+      - 85
+    blue:
+    - - 95
+      - 130
+  size_mm:
+  - 30
+  - 75
+shape:
+  cylinder:
+    circularity_min: 0.75
+    fill_min: 0.75
+  cube:
+    circularity_max: 0.85
+    fill_max: 0.72
+    vertices:
+    - 4
+    - 6
+robot:
+  tip_below_pump_head_m: 0.028
+  hover_m: 0.07
+  drop_tip_z_m: 0.1
+  velocity_scaling: 0.2
+  home_joints_deg:
+  - 109.86
+  - 1.58
+  - -93.51
+  - 1.14
+  - 0.08
+  - 20.03
+  home:
+  - 0.0
+  - 0.18
+  - 0.16
+  - 0.0
+  - 3.14159
+  - 0.0
+  bins:
+    red:
+    - 0.12
+    - 0.12
+    yellow:
+    - 0.2
+    - -0.12
+    blue:
+    - 0.2
+    - -0.12
+  sort_order:
+  - red
+  - yellow
+  - blue
+  stack_order:
+  - red
+  - yellow
+  - blue

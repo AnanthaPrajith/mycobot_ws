@@ -1,147 +1,176 @@
-"""Fresh HSV detections transformed through two measured ArUco markers."""
-import json
-import time
-from pathlib import Path
-
 import cv2
-import numpy as np
 import rclpy
+import numpy as np
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from mycobot_interfaces.srv import GetCubeCoords
-from .aruco_geometry import validate_config, estimate_pose, intersect
-
-MISSING = [1.0] * 6
-
 
 class Vision(Node):
     def __init__(self):
-        super().__init__('vision')
-        self.declare_parameter('calibration_file', '')
-        self.declare_parameter('show_debug', True)
-        self.declare_parameter('detection_timeout_sec', 0.5)
-        self.timeout = float(self.get_parameter('detection_timeout_sec').value)
-        if self.timeout <= 0:
-            raise ValueError('detection_timeout_sec must be positive')
-        self.show_debug = bool(self.get_parameter('show_debug').value)
-        path = self.get_parameter('calibration_file').value
-        if not path:
-            raise ValueError('Provide calibration_file pointing to measured ArUco JSON.')
-        self.config = json.loads(Path(path).expanduser().read_text())
-        self.objects, self.matrix, self.distortion = validate_config(self.config)
-        if not hasattr(cv2, 'aruco'):
-            raise RuntimeError('OpenCV with the aruco module is required.')
-        self.dictionary = cv2.aruco.getPredefinedDictionary(
-            getattr(cv2.aruco, self.config['dictionary']))
-        self.parameters = (cv2.aruco.DetectorParameters() if hasattr(cv2.aruco, 'ArucoDetector')
-                           else cv2.aruco.DetectorParameters_create())
-        self.parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
-        self.detector = (cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
-                         if hasattr(cv2.aruco, 'ArucoDetector') else None)
+        super().__init__("vision")
         self.bridge = CvBridge()
-        self.detected_cubes = {}
-        self.last_frame = 0.0
-        self.last_warning = 0.0
-        self.image_sub = self.create_subscription(Image, 'camera/image', self.img_callback, 1)
-        self.cube_coords_service = self.create_service(
-            GetCubeCoords, '/cube_coordinates', self.send_cube_coords)
-        self.get_logger().info('ArUco vision ready: service positions in metres, angles in radians.')
+        self.detected_cubes = {}  # Store detected cube centers: color -> (cx, cy)
 
+        # HSV debug: store mouse position
+        self.mouse_x = 0
+        self.mouse_y = 0
+        self.hsv_frame = None
+        cv2.namedWindow("Color Detection")
+        cv2.setMouseCallback("Color Detection", self._mouse_callback)
+
+        # Subscribe to camera image
+        self.image_sub = self.create_subscription(
+            msg_type=Image,
+            topic="camera/image",
+            callback=self.img_callback,
+            qos_profile=1
+        )
+        self.get_logger().info("Colored cube detector ready! (HSV-debug active)")
+
+        # initialize cube coordinate service
+        self.cube_coords_service = self.create_service(GetCubeCoords, "/cube_coordinates", self.send_cube_coords)
+        self.get_logger().info("Cube coordinate service ready!")
+
+
+    # send cube coordinates to brain node
     def send_cube_coords(self, request, response):
-        fresh = time.monotonic() - self.last_frame <= self.timeout
-        response.coords = self.detected_cubes.get(request.color.strip().lower(), MISSING) if fresh else MISSING
+        color = request.color
+        if color in self.detected_cubes:
+            cx, cy, rot = self.detected_cubes[color]
+            # Map pixel coordinates to real coordinates
+            # Pixel square: (185,335) BL, (465,335) BR, (465,55) TR, (185,55) TL
+            # Real square: (0.23,-0.075) BL, (0.23,0.075) BR, (0.08,0.075) TR, (0.08,-0.075) TL
+            px_norm = (cy - 55) / 280.0
+            rx = 0.08 + px_norm * 0.15
+            py_norm = (cx - 185) / 280.0
+            ry = -0.075 + py_norm * 0.15
+            rotz = rot/180 * 3.14159
+            response.coords = [rx, ry, 0.01, 0.0, 0.0, rotz]
+        else:
+            response.coords = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         return response
 
-    def img_callback(self, msg):
-        # Never serve the previous frame after a detection/calibration failure.
-        self.detected_cubes = {}
-        self.last_frame = 0.0
-        try:
-            frame = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
-            height, width = frame.shape[:2]
-            if [width, height] != self.config['intrinsics_resolution']:
-                raise ValueError(f'Image {width}x{height} differs from calibrated resolution.')
-            corners, ids, _ = (self.detector.detectMarkers(frame) if self.detector else
-                              cv2.aruco.detectMarkers(frame, self.dictionary, parameters=self.parameters))
-            mapping = {} if ids is None else {int(i): c.reshape(4, 2) for i, c in zip(ids.flatten(), corners)}
-            required = [m['id'] for m in self.config['markers']]
-            if not all(i in mapping for i in required):
-                raise ValueError('Both configured ArUco markers must be visible.')
-            pixels = np.vstack([mapping[i] for i in required]).astype(float)
-            rotation, translation, errors = estimate_pose(
-                self.objects, pixels, self.matrix, self.distortion,
-                self.config['max_reprojection_error_px'])
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            ranges = {
-                'red': [((0, 100, 100), (15, 255, 255)), ((170, 100, 100), (179, 255, 255))],
-                'yellow': [((16, 100, 100), (55, 255, 255))],
-                'green': [((56, 100, 100), (80, 255, 255))],
-                'blue': [((81, 100, 100), (110, 255, 255))],
-            }
-            kernel = np.ones((3, 3), np.uint8)
-            bounds = self.config['workspace_xy_mm']
-            detected = {}
-            for color, intervals in ranges.items():
-                mask = np.zeros(hsv.shape[:2], np.uint8)
-                for lower, upper in intervals:
-                    mask |= cv2.inRange(hsv, lower, upper)
-                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-                contours = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-                candidates = []
-                for contour in contours:
-                    rect = cv2.minAreaRect(contour)
-                    (cx, cy), (w, h), _ = rect
-                    area = cv2.contourArea(contour)
-                    if area < 150 or min(w, h) <= 0 or min(w, h) / max(w, h) < .75:
-                        continue
-                    if area / (w * h) < .7:
-                        continue
-                    xyz = intersect((cx, cy), self.matrix, self.distortion, rotation, translation,
-                                    self.config['marker_plane_z_mm'] + self.config['cube_height_mm'])
-                    if not (bounds['x'][0] <= xyz[0] <= bounds['x'][1] and
-                            bounds['y'][0] <= xyz[1] <= bounds['y'][1]):
-                        continue
-                    candidates.append((xyz, rect))
-                # The service identifies a color only; ambiguous same-color targets are rejected.
-                if len(candidates) == 1:
-                    xyz, rect = candidates[0]
-                    # Cube yaw is not required by the suction task. Do not report pixel angle as base yaw.
-                    detected[color] = [float(v) / 1000.0 for v in xyz] + [0.0, 0.0, 0.0]
-                    cv2.drawContours(frame, [np.round(cv2.boxPoints(rect)).astype(np.int32)], 0, (0, 255, 0), 2)
-                    cx, cy = map(int, rect[0])
-                    cv2.putText(frame, f'{color}: {xyz[0]:.1f},{xyz[1]:.1f},{xyz[2]:.1f} mm',
-                                (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, .4, (0, 255, 0), 1)
-            self.detected_cubes = detected
-            self.last_frame = time.monotonic()
-            cv2.putText(frame, f'ArUco max error {errors.max():.2f} px', (8, 25),
-                        cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 255, 0), 1)
-        except Exception as exc:
-            now = time.monotonic()
-            if now - self.last_warning > 2:
-                self.get_logger().warn(f'Coordinates unavailable: {exc}')
-                self.last_warning = now
-            return
-        if self.show_debug:
-            cv2.imshow('Color Detection', frame)
-            cv2.waitKey(1)
+    # saves mouse coordinates for the HSV Debug
+    def _mouse_callback(self, event, x, y, flags, param):
+        self.mouse_x = x
+        self.mouse_y = y
 
+    def img_callback(self, msg):
+        try:
+            # Convert ROS Image message to OpenCV format
+            cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+
+            # Convert BGR image to HSV color space
+            hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+
+            # Define color ranges in HSV
+            colors = {
+                "red": {
+                    "ranges": [
+                        (np.array([0, 100, 100]), np.array([15, 255, 255])),
+                        (np.array([170, 100, 100]), np.array([200, 255, 255]))
+                    ],
+                    "bgr": (0, 0, 255) # Red for drawing
+                },
+                "yellow": {
+                    "ranges": [
+                        (np.array([16, 100, 100]), np.array([55, 255, 255]))
+                    ],
+                    "bgr": (0, 255, 255) # Yellow for drawing
+                },
+                "green": {
+                    "ranges": [
+                        (np.array([56, 100, 100]), np.array([80, 255, 255]))
+                    ],
+                    "bgr": (0, 255, 0) # Green for drawing
+                },
+                "blue": {
+                    "ranges": [
+                        (np.array([81, 200, 200]), np.array([110, 255, 255]))
+                    ],
+                    "bgr": (255, 0, 0) # Blue for drawing
+                }
+            }
+
+            for color_name, color_data in colors.items():
+                mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
+                for (lower, upper) in color_data["ranges"]:
+                    mask_part = cv2.inRange(hsv, lower, upper)
+                    mask = cv2.bitwise_or(mask, mask_part)
+
+                # Find contours in the mask
+                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                # Filter: only square-like contours (50-150px side length, including rotated)
+                valid_squares = []
+                for contour in contours:
+                    # minAreaRect also detects rotated rectangles
+                    rect = cv2.minAreaRect(contour)  # ((cx,cy), (w,h), angle)
+                    (cx, cy), (w, h), angle = rect
+                    #print(f"[{color_name}] w={w:.0f} h={h:.0f} ratio={min(w,h)/max(w,h) if max(w,h)>0 else 0:.2f}")
+
+                    # Check size (50-150px for 4cm cube)
+                    if not (50 <= w <= 150 and 50 <= h <= 150):
+                        continue
+
+                    # Check aspect ratio (must be ~1:1 for square)
+                    if w == 0 or h == 0:
+                        continue
+                    aspect_ratio = float(min(w, h)) / float(max(w, h))
+                    if aspect_ratio < 0.75:
+                        continue
+
+                    valid_squares.append((contour, rect))
+
+                # Draw the most square-like cube per color (aspect ratio closest to 1)
+                if valid_squares:
+                    largest = max(valid_squares, key=lambda s: min(s[1][1]) / max(s[1][1]) if max(s[1][1]) > 0 else 0)
+                    contour, rect = largest
+                    (cx, cy), (w, h), angle = rect
+                    cx, cy = int(cx), int(cy)
+
+                    self.detected_cubes[color_name] = (cx, cy, angle)
+
+                    # Draw rotated rectangle
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+                    draw_color = color_data["bgr"]
+                    cv2.drawContours(cv_image, [box], 0, draw_color, 2)
+                    cv2.circle(cv_image, (cx, cy), 5, draw_color, -1)
+
+                    text = f"{color_name}: ({cx},{cy}) {int(w)}x{int(h)} {int(angle)}deg"
+                    cv2.putText(cv_image, text, (cx - 60, cy - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, draw_color, 2)
+
+            # --- HSV debug overlay ---
+            h_img, w_img = cv_image.shape[:2]
+            mx = max(0, min(self.mouse_x, w_img - 1))
+            my = max(0, min(self.mouse_y, h_img - 1))
+            hsv_val = hsv[my, mx]
+            debug_text = f"HSV: H={hsv_val[0]}  S={hsv_val[1]}  V={hsv_val[2]}"
+            # Black background bar at top
+            cv2.rectangle(cv_image, (0, 0), (350, 30), (0, 0, 0), -1)
+            cv2.putText(cv_image, debug_text, (10, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            # Crosshair at mouse position
+            cv2.drawMarker(cv_image, (mx, my), (255, 255, 255), cv2.MARKER_CROSS, 20, 1)
+
+            # Display the result
+            cv2.imshow("Color Detection", cv_image)
+            cv2.waitKey(10)
+
+        except Exception as e:
+            self.get_logger().error(f"Error processing image: {e}")
 
 def main(args=None):
     rclpy.init(args=args)
-    detector = None
+    detector = Vision()
     try:
-        detector = Vision()
         rclpy.spin(detector)
     except KeyboardInterrupt:
         pass
-    finally:
-        if detector is not None:
-            detector.destroy_node()
-        cv2.destroyAllWindows()
-        rclpy.shutdown()
-
+    detector.destroy_node()
+    cv2.destroyAllWindows()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

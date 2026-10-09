@@ -3,7 +3,6 @@ import numpy as np
 from ultralytics import YOLO
 import json
 import os
-import glob
 
 # ===== ROS 2 ADDITIONS =====
 import rclpy
@@ -31,9 +30,7 @@ CUBE_HEIGHT = 0.04
 Z_ONE_CUBE = 0.36  # True robot base Z for one cube on table
 
 # Calibration file path
-CALIB_FILE = os.path.expanduser(os.environ.get(
-    "MYCOBOT_CALIB_FILE", "~/z_scale_calibration.json"
-))
+CALIB_FILE = "/home/tejas/z_scale_calibration.json"
 
 # =============================
 # CAMERA INTRINSICS
@@ -63,22 +60,6 @@ t_base_cam = np.array([0.170, 0.0, 0.39], dtype=np.float32)
 T_base_cam = np.eye(4, dtype=np.float32)
 T_base_cam[:3, :3] = R_base_cam
 T_base_cam[:3, 3]  = t_base_cam
-
-# Five-point workspace calibration. Input is the legacy camera-to-base XY
-# estimate in millimetres; output is the corrected robot-base XY in mm.
-XY_AFFINE = np.array([
-    [0.96326342, -0.14303611],
-    [0.17048500,  0.86192343],
-    [21.92087408, -21.63722894],
-], dtype=np.float64)
-
-# Residual correction for the RED CUBE keypoint model, fitted from five
-# manually taught positions after the global workspace calibration.
-RED_XY_AFFINE = np.array([
-    [0.966202673,  0.009256139],
-    [-0.008833240, 1.058590200],
-    [14.834610200, -11.592932600],
-], dtype=np.float64)
 
 # =============================
 # OBJECT KEYPOINTS
@@ -117,25 +98,13 @@ class VisionWorkspaceNode(Node):
 
         # Load YOLO model
         self.model = YOLO(
-            os.environ.get(
-                "MYCOBOT_YOLO_MODEL",
-                "/home/tejas/YOLO/runs/pose/train/weights/best.pt"
-            )
+            "/home/tejas/YOLO/runs/pose/train/weights/best.pt"
         )
 
         # Camera (USB camera)
-        camera_setting = os.environ.get("MYCOBOT_CAMERA", "/dev/video2").strip()
-        camera_source = int(camera_setting) if camera_setting.isdecimal() else camera_setting
-        self.get_logger().info(f"Opening camera {camera_source!r} with V4L2")
-        self.cap = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
+        self.cap = cv2.VideoCapture("/dev/video2", cv2.CAP_V4L2)
         if not self.cap.isOpened():
-            available = sorted(glob.glob("/dev/video*"))
-            self.get_logger().error(
-                f"Camera {camera_source!r} could not be opened. "
-                f"Available video devices: {available}. "
-                "Set MYCOBOT_CAMERA to a capture device path or numeric index; "
-                "check device permissions and whether another process is using it."
-            )
+            self.get_logger().error("Camera could not be opened")
             return
 
         # Z calibration variables
@@ -469,20 +438,6 @@ class VisionWorkspaceNode(Node):
             T_base_obj = T_base_cam @ T_cam_obj
             object_pos_base = T_base_obj[:3, 3]
 
-            raw_xy_mm = object_pos_base[:2].astype(np.float64) * 1000.0
-            corrected_xy_mm = np.array(
-                [raw_xy_mm[0], raw_xy_mm[1], 1.0],
-                dtype=np.float64
-            ) @ XY_AFFINE
-
-            if color == "red":
-                corrected_xy_mm = np.array(
-                    [corrected_xy_mm[0], corrected_xy_mm[1], 1.0],
-                    dtype=np.float64
-                ) @ RED_XY_AFFINE
-
-            object_pos_base[:2] = corrected_xy_mm / 1000.0
-
             # =============================
             # VISUALIZATION
             # =============================
@@ -498,9 +453,9 @@ class VisionWorkspaceNode(Node):
 
             cv2.putText(
                 frame,
-                f"Base mm X:{object_pos_base[0] * 1000.0:.1f} "
-                f"Y:{object_pos_base[1] * 1000.0:.1f} "
-                f"Z:{object_pos_base[2] * 1000.0:.1f}",
+                f"Base X:{object_pos_base[0]:.3f} "
+                f"Y:{object_pos_base[1]:.3f} "
+                f"Z:{object_pos_base[2]:.3f}",
                 (x1, y2 + 40),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.45,

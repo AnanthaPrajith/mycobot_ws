@@ -32,7 +32,6 @@ setup(
         'console_scripts': [
             'brain = mycobot_brain.brain:main',
             'brain_test = mycobot_brain.brain_test:main',
-            'jog_robot = mycobot_brain.jog_robot:main',
         ],
     },
 )

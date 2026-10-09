@@ -1,0 +1,55 @@
+# Lab 9 real hardware (package lab9_pick_place): every value used by vision_lab9 and brain_lab9 (read at node start).
+# Frame g_base = robot base frame = pymycobot frame (x forward, y left, z up). Units: m and rad unless stated.
+# Values = the working run of solutions/lab9_simple/config.py on 2026-10-05 (mm there, m here). Keep both in sync.
+
+camera:
+  height_m: 0.47            # MEASURE: lens -> plate surface (tape). 0.47 = estimate; used for the height correction
+
+markers:                    # 2 ArUco markers on the white plate (plate moved +45 mm in x on 10-05)
+  dictionary: DICT_6X6_50
+  centers:                  # marker centre in g_base [x, y] (ruler from the robot centre + 45 mm)
+    1: [0.135, -0.060]      # id 1: near the robot, -y side
+    2: [0.255, 0.060]       # id 2: far corner, +y (bin) side
+
+objects:
+  surface_z_m: 0.012        # plate surface z (hand-measured 15/24 mm, lowered until suction made contact)
+  cube_m: 0.035             # cube edge (lab cubes are 35 mm; the course code assumed 40)
+  cylinder_d_m: 0.035
+  cylinder_h_m: 0.035       # MEASURE: cylinder height (assumed = cube)
+
+workspace:                  # objects outside are drawn red and never returned by /get_object
+  x: [0.120, 0.265]         # = the moved plate. 10-05: arm crashed once at x 0.120 (near-base IK); far edge at hover is marginal
+  y: [-0.075, 0.075]
+  search_margin_m: 0.020    # colour search area = workspace grown by this (keeps the bins and the robot out)
+
+hsv:                        # OpenCV hue 0..179
+  sat_min: 90               # white plate, grey table, shadows and the robot have low saturation
+  val_min: 60
+  hue:
+    red: [[0, 10], [170, 179]]
+    yellow: [[18, 35]]
+    green: [[40, 85]]
+    blue: [[95, 130]]
+  size_mm: [30, 75]         # object outline (enclosing-circle diameter incl. visible sides): 35 mm object -> ~40-60
+
+shape:                      # fill = A / enclosing-circle area: square 0.64, circle 1.0 (main criterion, worked live 10-05)
+                            # circularity C = 4*pi*A/P^2: square 0.785, circle 1.0, but pixel noise lowers it -> loose check
+  cylinder: {circularity_min: 0.75, fill_min: 0.75}
+  cube: {circularity_max: 0.85, fill_max: 0.72, vertices: [4, 6]}   # approxPolyDP(0.04 P); anything else = unknown
+  # 10-02 reference frame: blue cylinder merged with a blue cube behind it -> C 0.82, fill 0.84 (cylinder)
+
+robot:                      # brain_lab9 (MoveIt link pump_head = flange + 0.040; real nozzle tip = flange + 0.068)
+  tip_below_pump_head_m: 0.028   # contact: pump_head z = object top + this
+  hover_m: 0.070            # above the contact pose (Lab 8 HOVER_MARGIN)
+  drop_tip_z_m: 0.100       # nozzle tip height at release above a bin (clears a cube already inside by ~25 mm)
+  velocity_scaling: 1.0     # MoveIt max velocity/acceleration scaling (course: 1.0; 0.3 on 10-05 was ~3x slower)
+  home_joints_deg: [109.86, 1.58, -93.51, 1.14, 0.08, 20.03]   # home POSTURE (pymycobot get_angles, 10-05), used first;
+                            # its pymycobot coords: [2.7, 178.8, 199.9, 179.22, -0.18, -0.17]. Delete the line to use "home" below.
+  home: [0.0, 0.180, 0.160, 0.0, 3.14159, 0.0]   # fallback pose goal of pump_head (any posture; MoveIt chose J6 -158 deg)
+                            # = pymycobot [0, 180, 200, -180, 0, 0]; the course home was [0.16, -0.06, 0.32, 0, 1.57, 0]
+  bins:                     # bin centre [x, y] per colour (lab9_simple BIN_COORDS, 10-05)
+    red: [0.120, 0.120]
+    yellow: [0.200, -0.120]
+    blue: [0.200, -0.120]
+  sort_order: [red, yellow, blue]   # auto sort: colours picked in this order
+  stack_order: [red, yellow, blue]  # stacking: bottom first

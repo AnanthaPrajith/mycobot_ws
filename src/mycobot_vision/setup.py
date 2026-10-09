@@ -13,7 +13,7 @@ setup(
     ],
     install_requires=['setuptools',
                       "numpy",
-                      "opencv-contrib-python",
+                      "opencv-python",
     ],
     zip_safe=True,
     maintainer='yannick',
@@ -28,6 +28,7 @@ setup(
     entry_points={
         'console_scripts': [
             'vision = mycobot_vision.vision:main',
+            'vision_calibrated = mycobot_vision.vision_calibrated:main',
             'vision2 = mycobot_vision.vision2:main',
         ],
     },

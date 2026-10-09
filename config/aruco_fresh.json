@@ -1,0 +1,80 @@
+{
+  "units": "mm",
+  "dictionary": "DICT_6X6_50",
+  "marker_size_mm": 22.0,
+  "board_surface_z_mm": 12.0,
+  "marker_plane_z_mm": 12.0,
+  "marker_elevation_above_board_mm": 0.0,
+  "cube_height_mm": 35.0,
+  "object_height_note": "The cube and cylinder are both 35 mm high; the color-only service does not distinguish their shapes.",
+  "camera_base_xy_mm": [
+    170.0,
+    0.0
+  ],
+  "camera_xy_tolerance_mm": 100.0,
+  "camera_height_above_marker_mm": 470.0,
+  "camera_height_tolerance_mm": 30.0,
+  "markers": [
+    {
+      "id": 2,
+      "center_xy_mm": [
+        255.0,
+        60.0
+      ],
+      "top_edge_yaw_deg": null
+    },
+    {
+      "id": 1,
+      "center_xy_mm": [
+        135.0,
+        -60.0
+      ],
+      "top_edge_yaw_deg": null
+    }
+  ],
+  "intrinsics_resolution": [
+    640,
+    480
+  ],
+  "camera_matrix": [
+    [
+      756.78187368,
+      0.0,
+      327.92680366
+    ],
+    [
+      0.0,
+      751.59057675,
+      224.30265234
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "dist_coeffs": [
+    0.31941327,
+    -2.04882295,
+    -0.00547559,
+    0.00747853,
+    3.39222302
+  ],
+  "intrinsics_note": "User explicitly confirmed the same camera and settings and requested reuse of repository K and distortion. Reused without modification; independent geometric validation pending.",
+  "max_reprojection_error_px": 2.5,
+  "max_marker_center_shift_px": 5.0,
+  "max_marker_corner_shift_px": 5.0,
+  "robot_measurements_verified": false,
+  "workspace_xy_mm": {
+    "x": [
+      120.0,
+      265.0
+    ],
+    "y": [
+      -75.0,
+      75.0
+    ]
+  },
+  "measurement_source": "User confirmed upstream lab9.yaml geometry unchanged, measured black marker side=22 mm, camera base XY=[170,0] mm and lens height above plate=470 mm. Marker top-edge yaw remains to be established.",
+  "camera_position_note": "User confirmed t_base_cam Z=390 mm was an old value. Current camera base XY=[170,0] mm; lens height above marker plane=470 mm; marker plane base Z=12 mm; expected camera base Z=482 mm."
+}

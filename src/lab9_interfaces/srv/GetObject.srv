@@ -1,0 +1,11 @@
+# Lab 9: request one object by colour and shape (served by lab9_pick_place/vision_lab9 on /get_object)
+string color      # "red", "yellow", "green", "blue"; "" = any colour
+string shape      # "cube", "cylinder"; "" = any shape ("unknown" objects are only returned for "")
+string id         # optional: a specific id from "matches" of an earlier answer; "" = nearest match
+---
+bool found        # false: no matching object in the current camera frame (coords then empty)
+string id         # unique id of the returned object in the current frame, e.g. "red_cube_1"
+string shape      # "cube", "cylinder" or "unknown"
+float64[] coords  # x, y, z_top in m (frame g_base, z_top = top surface), roll, pitch, yaw in rad
+float64 height    # object height in m (for the MoveIt collision object)
+string[] matches  # ids of all matching objects, nearest to the robot base first

@@ -1,0 +1,39 @@
+# Lab 9, Task A, step TA2: the calibration setup, measured in the lab.
+# Every line marked TODO is a placeholder: replace it with the real value before running aruco_extrinsics.py.
+#
+# Frame B = robot base frame "g_base" (the frame brain.py sends its goal poses in):
+#   origin = centre of the robot base, x forward (away from the robot, into the camera view), y left, z up.
+#   [check] the origin and axis directions against the robot before trusting any number below.
+# Units: metres and degrees.
+#
+# Marker orientation: look at the marker so its pattern is upright (as printed, readable).
+#   Its own x axis points from the top-left corner to the top-right corner, its y axis from bottom-left to top-left.
+#   yaw_deg = angle from B's x axis to the marker's x axis, counter-clockwise seen from above.
+#   yaw_deg 0  -> marker x along +x_B (away from the robot), the marker's "up" (top edge) towards +y_B (robot's left).
+#   yaw_deg 90 -> marker x along +y_B, "up" towards -x_B (towards the robot).   GUIDE TA2 has a drawing.
+
+dictionary: DICT_4X4_50     # TODO: ArUco dictionary printed on the marker sheet (ask the TAs if unsure)
+marker_size: 0.040          # TODO: side of the black outer square, measured with a ruler (m)
+plane_z: 0.0                # TODO: height of the marker plane in B (m); 0.0 if the markers lie at the height of the base origin
+camera_height: 0.0          # TODO: measured height h of the camera lens above the marker plane (m); 0.0 = unknown
+cube_height: 0.040          # cube side (brain.py spawn_cube uses a 0.04 m box)
+
+markers:
+  - id: 0                   # TODO: id of the first marker
+    x: 0.10                 # TODO: marker centre in B (m)
+    y: 0.12                 # TODO
+    yaw_deg: 0.0            # TODO
+  - id: 1                   # TODO: id of the second marker
+    x: 0.22                 # TODO
+    y: -0.12                # TODO
+    yaw_deg: 0.0            # TODO
+
+# Region where cubes may lie (B frame, m). Detections outside it are rejected (TA4, TB3).
+# The bins (brain.py choose_drop: A (0.13, 0.17), B (0.00, 0.17), C (0.23, -0.16), D (0.13, -0.16)) must lie OUTSIDE it,
+# otherwise a sorted cube in a bin is detected again.
+workspace:
+  x_min: 0.05               # TODO: measure the free area of your tray
+  x_max: 0.26
+  y_min: -0.12
+  y_max: 0.12
+  r_max: 0.28               # myCobot 280 reach (PDF: 280 mm)

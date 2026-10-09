@@ -1,0 +1,195 @@
+LAB 9 - RUN STEPS, FROM A NEW SYSTEM
+====================================
+
+Machines:
+  Lab PC     Ubuntu 24.04, ROS 2 Jazzy. Runs camera, MoveIt, vision, brain.
+  Robot Pi   cobot-pi1. Runs the controller (serial to the arm, GPIO pump).
+  Both use repo branch myCobot-lab and ROS_DOMAIN_ID 47.
+
+[MOVES] = the arm moves: keep a hand at the robot's power switch.
+Indented lines are commands: copy them as they are.
+
+
+A. ONE-TIME SETUP
+-----------------
+
+A1. Lab PC
+
+1. Install ROS 2 Jazzy desktop:
+   https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html
+
+2. Install the packages:
+    sudo apt update && sudo apt install ros-jazzy-moveit ros-jazzy-moveit-configs-utils ros-jazzy-moveit-msgs ros-jazzy-control-msgs ros-jazzy-ros2-control ros-jazzy-ros2-controllers ros-jazzy-controller-manager ros-jazzy-joint-trajectory-controller ros-jazzy-joint-state-publisher-gui ros-jazzy-xacro ros-jazzy-cv-bridge python3-opencv python3-scipy python3-yaml python3-colcon-common-extensions v4l-utils
+
+3. Clone the repo:
+    git clone https://github.com/manojkumar-org/mycobot-project.git ~/mycobot-project
+    cd ~/mycobot-project && git checkout myCobot-lab
+
+4. Create the environment file, used in every terminal:
+    printf '%s\n' 'source /opt/ros/jazzy/setup.bash' 'source ~/mycobot-project/pp_moveit_ws/install/setup.bash' 'export ROS_DOMAIN_ID=47' 'unset ROS_LOCALHOST_ONLY ROS_AUTOMATIC_DISCOVERY_RANGE' > ~/rosenv9.sh
+
+5. Build. Leave any venv first: nodes built inside a venv start with the wrong Python.
+    deactivate 2>/dev/null; source /opt/ros/jazzy/setup.bash
+    cd ~/mycobot-project/pp_moveit_ws
+    colcon build --symlink-install --packages-up-to lab9_pick_place mycobot_brain mycobot_vision
+    head -1 install/lab9_pick_place/lib/lab9_pick_place/vision_lab9
+   OK = it prints #!/usr/bin/python3
+
+6. Find the camera:
+    v4l2-ctl --list-devices
+   The C930e must be /dev/video0. If it is /dev/videoN with N not 0, start the camera by hand:
+    ros2 run mycobot_280pi opencv_camera --ros-args -p num:=N
+
+7. Open the firewall to the Pi (Pi IP; check it with "hostname -I" on the Pi):
+    sudo ufw allow from 129.217.130.85
+
+8. Optional: an SSH key to the Pi:
+    ssh-keygen -t ed25519 && ssh-copy-id cobot@129.217.130.85
+
+
+A2. Robot Pi (Ubuntu 24.04 arm64)
+
+1. Install the packages:
+    sudo apt update && sudo apt install ros-jazzy-ros-base ros-jazzy-control-msgs python3-rpi-lgpio python3-pip
+    pip3 install --user --break-system-packages pymycobot==4.0.7
+
+2. Clone the same repo, as in A1 step 3. It is private: use a GitHub token as the password.
+
+3. Create the same ~/rosenv9.sh as in A1 step 4.
+
+4. Open the firewall to the Lab PC (Lab PC IP, "hostname -I"):
+    sudo ufw allow from 129.217.130.101
+
+5. Serial access: "groups" must list dialout. If not, run this, then log in again:
+    sudo usermod -aG dialout $USER
+
+6. For Part 0 only, build the course controller. Use one worker, because the Pi has little RAM.
+    source /opt/ros/jazzy/setup.bash && cd ~/mycobot-project/pp_moveit_ws
+    colcon build --symlink-install --parallel-workers 1 --packages-select mycobot_controller
+   The final controller is not built: it runs directly with python3.
+
+7. Check:
+    source ~/rosenv9.sh && python3 -c "from pymycobot.mycobot280 import MyCobot280; import RPi.GPIO; from control_msgs.action import FollowJointTrajectory; print('ok')"
+   OK = it prints ok
+
+
+A3. Network test (both machines, no motion)
+
+   Lab PC:
+    source ~/rosenv9.sh && ros2 multicast receive
+   Pi:
+    source ~/rosenv9.sh && ros2 multicast send
+   OK = the Lab PC prints "Hello World!".
+   If not: check "sudo ufw status" and the domain on both machines, then ask the TAs.
+
+
+A4. Table setup and config/lab9.yaml
+
+The file is pp_moveit_ws/src/lab9_pick_place/config/lab9.yaml. Values are in metres, measured from the robot base
+centre with a ruler. After an edit, restart the node; no rebuild is needed.
+
+1. Mount the camera above the plate, looking straight down.
+
+2. Put ArUco markers DICT_6X6_50 ids 1 and 2 on the plate, flat and uncovered.
+   To print them if they are missing (writes aruco_6x6_id1.png and aruco_6x6_id2.png):
+    python3 -c "import cv2; d=cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50); g=getattr(cv2.aruco,'generateImageMarker',None) or cv2.aruco.drawMarker; [cv2.imwrite(f'aruco_6x6_id{i}.png', cv2.copyMakeBorder(g(d,i,400),40,40,40,40,cv2.BORDER_CONSTANT,value=255)) for i in (1,2)]"
+
+3. Measure and enter:
+   the two marker centres      -> markers.centers
+   camera lens to plate        -> camera.height_m
+   cylinder height             -> objects.cylinder_h_m
+   bin centres                 -> robot.bins
+   plate area                  -> workspace.x, workspace.y
+
+
+B. EVERY LAB DAY
+----------------
+
+1. On both machines:
+    cd ~/mycobot-project && git pull
+
+2. Lab PC: rebuild (A1 step 5) only if a package.xml, setup.py, .srv, launch or config file was ADDED.
+   Python edits need no rebuild.
+
+3. In every new terminal:
+    deactivate 2>/dev/null; source ~/rosenv9.sh
+
+4. Only one program may use the robot port: no Jupyter serial notebook, no mycobot_control,
+   and NEVER both controllers at the same time.
+
+
+C. PART 0 - THE ORIGINAL COURSE SYSTEM (baseline, do it first)
+--------------------------------------------------------------
+
+1. Pi:
+    ros2 run mycobot_controller controller
+
+2. Lab PC [MOVES]. This opens brain, MoveIt, camera and vision at once, and the brain moves the arm home immediately.
+    ros2 launch mycobot_brain brain.launch.py
+
+3. Record for report section 2:
+   - Does the "Color Detection" window find the objects?
+   - Menu 1 (stack) and 2 (sort): the selections, the bins and the outcome.
+   - What happens when a cube is missing.
+   - Watch: after a mode, the course "rejoice" drives the arm to all-zero angles.
+
+4. Stop: Ctrl+C in all tabs, then Ctrl+C in the Pi controller last.
+
+
+D. FINAL SYSTEM (lab9_pick_place)
+---------------------------------
+
+1. Pi, terminal 1:
+    python3 ~/mycobot-project/pp_moveit_ws/src/lab9_pick_place/lab9_pick_place/controller_lab9.py
+   OK = "Pump ready!" and "FJT action server ready!"
+
+2. Lab PC, terminal 1:
+    ros2 topic hz /joint_states
+   OK = about 20 Hz. Then Ctrl+C.
+
+3. Lab PC, terminal 1:
+    ros2 launch lab9_pick_place lab9_real.launch.py
+   It opens 3 tabs:
+     MoveIt   OK = "You can start planning now!"
+     Camera
+     Vision   OK = "calibrated: 848x480, ~1.0 mm/px, rotation ~90 deg"
+
+4. Check the vision window:
+   - a yellow box on the plate, a magenta circle on the robot base;
+   - every object labelled "colour_shape_n (x, y) mm".
+   If anything is wrong: fix markers.centers in lab9.yaml and restart vision, or press c to re-read the markers.
+
+5. Lab PC, terminal 2:
+    ros2 service call /get_object lab9_interfaces/srv/GetObject "{color: red, shape: cube}"
+   OK = found=True and coords in metres.
+
+6. Lab PC, terminal 2 [MOVES]:
+    ros2 run lab9_pick_place brain_lab9
+   The arm moves to the home posture, then the menu appears:
+     1  pick one object: colour r/y/g/b, shape c (cube) / z (cylinder) / Enter (any),
+        then a number if several match, then the bin
+     2  auto sort
+     3  stack
+     q  quit
+
+7. Stop: q in the brain, then Ctrl+C in the 3 tabs, then Ctrl+C in the Pi controller (last).
+
+
+E. EVIDENCE FOR THE REPORT (Lab PC, no motion)
+----------------------------------------------
+
+1. Close the Vision tab, then start vision with its log saved:
+    cd ~/mycobot-project && mkdir -p lab9/eval
+    ros2 run lab9_pick_place vision_lab9 2>&1 | tee lab9/eval/vision_scene1.log
+
+2. For each object arrangement, press s in the vision window.
+   The frames are saved to pp_moveit_ws/src/lab9_pick_place/frames/, next to LAB9_REPORT.md.
+
+3. Log the service answers (terminal 2):
+    cd ~/mycobot-project && python3 solutions/lab9_real_hardware/lab9_eval_logger.py query scene1
+
+4. Extract the shape features from the vision log:
+    python3 solutions/lab9_real_hardware/lab9_eval_logger.py features lab9/eval/vision_scene1.log --scene scene1
+
+5. Print all tables, then paste them into LAB9_REPORT.md:
+    python3 solutions/lab9_real_hardware/lab9_eval_logger.py summary

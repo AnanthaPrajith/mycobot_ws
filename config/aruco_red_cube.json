@@ -1,0 +1,242 @@
+{
+  "units": "mm",
+  "marker_position_source": "Refitted 2026-10-08 from hand-guided A/B/C/D outer-board corners using the measured 85 mm flange-to-suction-tip length and recorded flange orientation.",
+  "dictionary": "DICT_6X6_50",
+  "marker_size_mm": 22.0,
+  "board_surface_z_mm": 5.0,
+  "marker_plane_z_mm": 5.0,
+  "marker_elevation_above_board_mm": 0.0,
+  "cube_height_mm": 35.0,
+  "object_height_note": "The cube and cylinder are both 35 mm high; the color-only service does not distinguish their shapes.",
+  "camera_base_xy_mm": [
+    12.250666303493261,
+    -80.1149787488874
+  ],
+  "camera_position_note": "Low-error iterative planar solution selected from fixed reference marker pixels after the 2026-10-08 board reteach.",
+  "camera_xy_tolerance_mm": 100.0,
+  "camera_height_above_marker_mm": 652.5562155308319,
+  "camera_height_tolerance_mm": 30.0,
+  "markers": [
+    {
+      "id": 2,
+      "center_xy_mm": [
+        274.53078258,
+        49.70520754
+      ],
+      "top_edge_yaw_deg": 0.89581192
+    },
+    {
+      "id": 1,
+      "center_xy_mm": [
+        157.51013781,
+        -64.28033775
+      ],
+      "top_edge_yaw_deg": -179.10418808
+    }
+  ],
+  "intrinsics_resolution": [
+    640,
+    480
+  ],
+  "camera_matrix": [
+    [
+      756.78187368,
+      0.0,
+      327.92680366
+    ],
+    [
+      0.0,
+      751.59057675,
+      224.30265234
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "dist_coeffs": [
+    0.31941327,
+    -2.04882295,
+    -0.00547559,
+    0.00747853,
+    3.39222302
+  ],
+  "intrinsics_note": "Copied from existing vision node; verify original calibration resolution before using.",
+  "max_reprojection_error_px": 2.5,
+  "reference_marker_centers_px": {
+    "2": [
+      430.0843505859375,
+      351.4357604980469
+    ],
+    "1": [
+      307.8843994140625,
+      225.85354614257812
+    ]
+  },
+  "max_marker_center_shift_px": 5.0,
+  "reference_marker_corners_px": {
+    "2": [
+      [
+        442.6545715332031,
+        339.8953857421875
+      ],
+      [
+        442.3224792480469,
+        363.32568359375
+      ],
+      [
+        417.8526611328125,
+        362.9527893066406
+      ],
+      [
+        417.5076904296875,
+        339.5692443847656
+      ]
+    ],
+    "1": [
+      [
+        294.0335388183594,
+        237.3324432373047
+      ],
+      [
+        296.422119140625,
+        213.64328002929688
+      ],
+      [
+        320.3974609375,
+        213.83181762695312
+      ],
+      [
+        320.68438720703125,
+        238.60671997070312
+      ]
+    ]
+  },
+  "max_marker_corner_shift_px": 5.0,
+  "robot_measurements_verified": true,
+  "workspace_xy_mm": {
+    "x": [
+      138.0,
+      293.0
+    ],
+    "y": [
+      -83.0,
+      68.0
+    ]
+  },
+  "board_fit": {
+    "source": "config/board_teaching_points_2026-10-08.jsonl; A/C from initial pass and latest B/D",
+    "board_size_mm": [
+      150.0,
+      150.0
+    ],
+    "logical_origin_A_base_xy_mm": [
+      292.338272,
+      67.050834
+    ],
+    "base_delta_per_u_mm": [
+      -1.00543389,
+      -0.01572111
+    ],
+    "base_delta_per_v_mm": [
+      -0.01213693,
+      -0.97545755
+    ],
+    "marker_card_inset_mm": 5.0,
+    "marker_center_inset_mm": 17.5,
+    "nozzle_length_mm": 85.0,
+    "xy_rmse_mm": 0.7471,
+    "tcp_corner_xyz_mm": {
+      "A": [
+        292.0526,
+        66.3605,
+        9.4102
+      ],
+      "B": [
+        290.803,
+        -78.577,
+        8.6738
+      ],
+      "C": [
+        141.8089,
+        65.383,
+        3.3408
+      ],
+      "D": [
+        139.417,
+        -82.316,
+        3.0858
+      ]
+    },
+    "side_lengths_mm": {
+      "AB": 144.943,
+      "AC": 150.247,
+      "BD": 151.433,
+      "CD": 147.719
+    },
+    "square_fit_note": "Affine least-squares fit to the measured 150 x 150 mm square; opposite-corner closure residual is 0.747 mm per corner."
+  },
+  "current_camera_observations": {
+    "source": "refreshed fixed-camera marker reference; board geometry unchanged",
+    "captured_at": "2026-10-08T13:13:02.623247+00:00",
+    "image_resolution": [
+      640,
+      480
+    ],
+    "samples": 30,
+    "max_corner_std_px": 0.11320367455482483,
+    "selected_camera_base_xyz_mm": [
+      12.250666303493261,
+      -80.1149787488874,
+      657.5562155308319
+    ],
+    "selected_reprojection_mean_px": 0.7423201212176831,
+    "selected_reprojection_max_px": 1.4846402924793294
+  },
+  "workspace_validation": {
+    "source": "config/aruco_workspace_validation_2026-10-08.jsonl",
+    "selection": "latest record for each of P1, P2, P3_center, P4 and P5",
+    "validated_at": "2026-10-08T13:15:30.630904+00:00",
+    "points": 5,
+    "xy_errors_mm": [
+      4.675482640345541,
+      2.998340731996064,
+      5.902249256979142,
+      2.1703169520536747,
+      2.836211809201308
+    ],
+    "xy_mean_error_mm": 3.716520278115146,
+    "xy_rmse_mm": 3.9608358828877157,
+    "xy_max_error_mm": 5.902249256979142,
+    "max_frame_std_x_mm": 0.036108801299424176,
+    "max_frame_std_y_mm": 0.04652652509012369,
+    "decision": "PASSED: all five points are within the 10 mm validation limit."
+  },
+  "color_service_validation": {
+    "validated_at": "2026-10-06",
+    "coordinate_frame": "g_base",
+    "units": "metres",
+    "observations": {
+      "blue": [
+        0.19876417319727233,
+        0.013003919827496577,
+        0.04
+      ],
+      "yellow": [
+        0.1996686132228842,
+        0.008112094717166549,
+        0.04
+      ]
+    },
+    "status": "INVALIDATED by the 2026-10-08 board reteach; service must be rechecked."
+  },
+  "tool_geometry": {
+    "frame": "joint6_flange",
+    "tcp": "pump_head",
+    "flange_to_vacuum_tip_mm": 85.0,
+    "measurement": "flat joint-6 flange face to vacuum end-tip contact plane",
+    "measured_at": "2026-10-06",
+    "status": "physically_measured"
+  }
+}

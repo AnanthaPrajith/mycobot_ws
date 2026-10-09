@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/manojkumar-org/mycobot-project.git",
+  "branch": "myCobot-lab",
+  "commit": "f7f05f0a3c3bfa5de49a1a93df3bae1937770973",
+  "packages": [
+    "lab9_interfaces",
+    "lab9_pick_place",
+    "mycobot_280_moveit2",
+    "mycobot_280pi",
+    "mycobot_brain",
+    "mycobot_control",
+    "mycobot_controller",
+    "mycobot_description",
+    "mycobot_interfaces",
+    "mycobot_motion_v1",
+    "mycobot_msgs",
+    "mycobot_vision",
+    "vision"
+  ],
+  "backup": "/home/corobot/mycobot_ws/backups/before-lab-import-20261008-181614"
+}

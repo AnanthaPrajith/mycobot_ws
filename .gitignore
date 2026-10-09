@@ -25,3 +25,12 @@ __pycache__/
 # Interactive history and source backup files
 .ipython/profile_default/history.sqlite*
 *.orig
+
+# Local source snapshot before branch import
+/backups/
+
+# Recreated camera inspections and local evaluation output
+/calibration_images/
+/lab9/eval/
+/config/aruco_inspection.json
+/config/aruco_setup_diagnostic.json

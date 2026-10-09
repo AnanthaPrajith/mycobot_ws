@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>lab9_pick_place</name>
+  <version>0.1.0</version>
+  <description>Lab 9 (CoRobot) on the real robot: vision_lab9, brain_lab9, controller_lab9, launch files and lab9.yaml.
+    Uses the course packages (mycobot_280_moveit2, mycobot_280pi, mycobot_interfaces) without changing them.</description>
+  <maintainer email="student@todo.todo">Lab 9 group</maintainer>
+  <license>TODO</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>lab9_interfaces</exec_depend>
+  <exec_depend>mycobot_interfaces</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>mycobot_280_moveit2</exec_depend>
+  <exec_depend>mycobot_280pi</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
