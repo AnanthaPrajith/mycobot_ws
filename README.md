@@ -487,18 +487,4 @@ and notebook imports continue to work.
 - `backups/`: ignored, local recovery archives of pre-import and removed temporary files.
 - `build/`, `install/`, `log/`: generated per machine; ignored by Git.
 
-Source imported from [manojkumar-org/mycobot-project](https://github.com/manojkumar-org/mycobot-project)
-branch **myCobot-lab**, commit `f7f05f0a3c3bfa5de49a1a93df3bae1937770973`.
-See [IMPORT.json](upstream_lab/IMPORT.json). The current checkout's Git origin/history
-were retained; `git pull` does not automatically refresh that imported branch.
 
-Local changes include persistent camera capture/preview, explicit HIGH GPIO
-initialization, collision/home checks, commissioning configuration and bin updates.
-Do not run commands from historical reports without adapting paths and checking
-their measurements. Package-specific READMEs and original notebooks remain intact.
-
-Remote course-pipeline fixes are retained in `mycobot_brain` and the legacy
-`mycobot_vision vision` entry point, using `aruco_geometry_legacy.py` for its
-original calibration interface. The strict `vision_calibrated` extension retains
-its own geometry checks. Neither replaces the active `lab9_pick_place` run above.
-The additional `README_ROBOT_PC.md` documents that separate course pipeline.
